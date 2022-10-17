@@ -10,7 +10,7 @@ Router::scope('/', function (RouteBuilder $routes) {
         ['controller' => 'Render', 'action' => 'index', 'plugin' => 'SeoFilter']
     );
 
-    $filtres = \Cake\ORM\TableRegistry::get('Seofilter.SeofilterFilters')->find()->all();
+    $filtres = \Cake\ORM\TableRegistry::get('SeoFilter.SeofilterFilters')->find()->all();
 
     foreach ($filtres as $filtre) {
         $routes->connect(
