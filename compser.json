@@ -1,0 +1,37 @@
+{
+    "name": "x-zolezzi/seo-filter",
+    "description": "Filtre à facette avec pagination pour CakePHP 4",
+    "homepage": "https://github.com/x-zolezzi/seo-filter",
+    "type": "cakephp-plugin",
+    "keywords": ["cakephp", "filtre à facette"],
+    "license": "MIT",
+    "authors": [{
+            "name": "Xavier ZOLEZZI",
+            "homepage": "https://github.com/x-zolezzi",
+            "role": "Author"
+        },
+        {
+            "name": "Jérémy Ounnas",
+            "homepage": "https://github.com/LeJxrxm",
+            "role": "Author"
+        }
+    ],
+    "require": {
+        "php": ">=7.2",
+        "cakephp/cakephp": "~4.1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^8.5 || ^9.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "SeoFilter\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SeoFilter\\Test\\": "tests/",
+            "Cake\\Test\\": "vendor/cakephp/cakephp/tests/"
+        }
+    }
+}
