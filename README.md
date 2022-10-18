@@ -77,4 +77,6 @@ CREATE TABLE IF NOT EXISTS `seofilter_filters_urls` (
     CONSTRAINT `FK_seofilter_filters_urls_seofilter_filters` FOREIGN KEY (`seofilter_filter_id`) REFERENCES `seofilter_filters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
 ```
-
+# TODO LIST
+1. Système de pagination lié au component `Paginator` de CakePHP
+2. Permettre ou non l'affichage entre parenthèses du nombre de résultats après application d'un filtre
