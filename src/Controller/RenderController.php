@@ -42,7 +42,8 @@ class RenderController extends AppController
         return $this->response->withType('application/json')
             ->withStringBody(json_encode([
                 'url' => $url,
-                'html' => $html
+                'html' => $html,
+                'total_items' => $items->count()
             ]));
     }
 }
