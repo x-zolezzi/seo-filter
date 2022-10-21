@@ -2,6 +2,7 @@
 
 namespace SeoFilter\Controller;
 
+use Cake\Core\Configure;
 use Cake\Event\EventInterface;
 use SeoFilter\Controller\AppController;
 
@@ -14,6 +15,8 @@ class RenderController extends AppController
         ];
         $this->Authentication->addUnauthenticatedActions($anonymousActions);
 
+        $this->loadComponent('SeoFilter.SeoFilter', Configure::read('SeoFilter.config'));
+        
         $this->loadComponent('SeoFilter.SeoFilter');
 
         parent::beforeFilter($event);
@@ -38,12 +41,17 @@ class RenderController extends AppController
         $this->set('items', $items);
 
         $html = $this->render('render')->getBody()->__toString();
+        
+        $data = [
+            'url' => $url,
+            'html' => $html
+        ];
+
+        if($this->SeoFilter->getConfig('countResults')){
+            $data['total_items'] = $items->count();
+        }
 
         return $this->response->withType('application/json')
-            ->withStringBody(json_encode([
-                'url' => $url,
-                'html' => $html,
-                'total_items' => $items->count()
-            ]));
+            ->withStringBody(json_encode($data));
     }
 }
