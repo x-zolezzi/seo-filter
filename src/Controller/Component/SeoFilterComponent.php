@@ -3,6 +3,7 @@
 namespace SeoFilter\Controller\Component;
 
 use Cake\Controller\Component;
+use Cake\Controller\ComponentRegistry;
 use Cake\Http\Exception\RedirectException;
 use Cake\ORM\Locator\TableLocator;
 use Cake\Routing\Router;
@@ -10,7 +11,46 @@ use Cake\Routing\Router;
 class SeoFilterComponent extends Component
 {
 
+    private array $paginate = [
+        'enabled' => false,
+        'items_per_page' => 0,
+    ];
 
+    private bool $countResults = true;
+
+    private array $config = [];
+
+    public function __construct(ComponentRegistry $registry, array $config = [])
+    {
+        if(isset($config['paginate']))
+            $this->paginate = [
+                'enabled' => $config['paginate']['enabled'],
+                'items_per_page' => $config['paginate']['items_per_page'] > 0 ? $config['paginate']['items_per_page'] : 1
+            ];
+
+        if(isset($config['countResults']))
+            $this->countResults = $config['countResults'];
+
+        $this->config = [
+            'paginate' => $this->paginate,
+            'countResults' => $this->countResults
+        ];
+
+        parent::__construct($registry, $config);
+    }
+
+    public function getConfig(?string $key = null, $default = null)
+    {
+        if($key){
+            if(!array_key_exists($key, $this->config)){
+                return false;
+            }
+
+            return $this->config[$key];
+        }
+
+        return $this->config;
+    }
 
     public function getConditions($filtres = null, $slug_seo_filter = null, $forceRedirect = true)
     {
