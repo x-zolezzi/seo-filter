@@ -78,6 +78,23 @@ CREATE TABLE IF NOT EXISTS `seofilter_filters_urls` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
 ```
 
+Mettre à jour le fichier config/app.php
+```php
+[
+    // ...
+    'SeoFilter' => [
+        'config' => [
+            'paginate' => [
+                'enabled' => true,
+                'items_per_page' => 10
+            ],
+            'countResults' => true, // Si activé, renvoie le nombre de résultats après application du filtre
+            'previewResults' => false // Si activé, affiche le nombre de résultats après application d'un critère après ceux-ci
+        ]
+    ]
+]
+```
+
 ### Créer un filtre
 Tout d'abord, il faut créer un filtre sur lequel le plugin est capable de traviller. Rendez-vous dans la table `seofilter_filters` et créez votre premier filtre.
 Par exemple:
