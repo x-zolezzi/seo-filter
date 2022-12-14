@@ -96,7 +96,7 @@ Mettre à jour le fichier config/app.php
 ```
 
 ### Créer un filtre
-Tout d'abord, il faut créer un filtre sur lequel le plugin est capable de traviller. Rendez-vous dans la table `seofilter_filters` et créez votre premier filtre.
+Tout d'abord, il faut créer un filtre sur lequel le plugin est capable de travailler. Rendez-vous dans la table `seofilter_filters` et créez votre premier filtre.
 Par exemple:
 ```sql
 INSERT INTO `seofilter_filters` (`name`, `slug`, `controller`, `action`, `model`, `function_find`, `element`, `titre`, `seo_titre`, `seo_description`, `is_active`, `created`, `modified`) VALUES ('Produits', 'categories', 'Categories', 'details', 'Produits', 'findItemsInParentCategory', 'carte_produit', 'Les produits', 'lorem', 'lorem', 1, NOW(), NOW());

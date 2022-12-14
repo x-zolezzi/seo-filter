@@ -15,8 +15,8 @@ class RenderController extends AppController
         ];
         $this->Authentication->addUnauthenticatedActions($anonymousActions);
 
-        $this->loadComponent('SeoFilter.SeoFilter', Configure::read('SeoFilter.config'));
-        
+        $this->loadComponent('SeoFilter.SeoFilter', Configure::read('SeoFilter.config') ?? []);
+
         $this->loadComponent('SeoFilter.SeoFilter');
 
         parent::beforeFilter($event);
@@ -25,23 +25,24 @@ class RenderController extends AppController
     public function index()
     {
         $this->loadModel('SeoFilter.SeofilterFilters');
-        $filtre = $this->SeofilterFilters->find()->where(['SeofilterFilters.slug' => $this->getRequest()->getParam('slug_seo_filter'), 'SeofilterFilters.is_active' => true])->first();
+        $filtre = $this->SeofilterFilters->find()
+            ->where([
+                'SeofilterFilters.slug' => $this->getRequest()->getParam('slug_seo_filter'),
+                'SeofilterFilters.is_active' => true
+            ])
+            ->first();
         $this->set('filtre', $filtre);
 
-        $criteres = $this->SeoFilter->getCriteres($this->getRequest()->getData('seofilter_filters_criteres'));
-
-        $url = $this->SeoFilter->getUrl($criteres, $this->getRequest()->getParam('slug_seo_filter'), true);
-
-        $conditionsFilter = $this->SeoFilter->getConditions($this->SeoFilter->getUrl($criteres, $this->getRequest()->getParam('slug_seo_filter'), false), $this->getRequest()->getParam('slug_seo_filter'), false);
-
-        $order = $this->SeoFilter->getOrder();
 
         $this->loadModel($filtre->model);
-        $items = $this->{$filtre->model}->{$filtre->function_find}($conditionsFilter, $order);
+        $items = $this->{$filtre->model}->{$filtre->function_find}();
+        $this->SeoFilter->applyFilters($items);
+        $url = $this->SeoFilter->getUrl($this->getRequest()->getParam('slug_seo_filter'), true);
+
         $this->set('items', $items);
 
         $html = $this->render('render')->getBody()->__toString();
-        
+
         $data = [
             'url' => $url,
             'html' => $html

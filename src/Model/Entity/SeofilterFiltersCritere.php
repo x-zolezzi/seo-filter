@@ -14,6 +14,8 @@ use Cake\ORM\Entity;
  * @property string $slug
  * @property string $model
  * @property string $colonne
+ * @property string $method
+ * @property string $critere_type
  * @property bool $ordre
  * @property bool $is_active
  * @property \Cake\I18n\FrozenTime $created
@@ -38,8 +40,11 @@ class SeofilterFiltersCritere extends Entity
         'slug' => true,
         'model' => true,
         'colonne' => true,
+        'method' => true,
         'colonne_label' => true,
         'function_find_values' => true,
+        'element' => true,
+        'critere_type' => true,
         'ordre' => true,
         'is_active' => true,
         'created' => true,
