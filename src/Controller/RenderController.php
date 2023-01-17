@@ -36,6 +36,7 @@ class RenderController extends AppController
 
         $this->loadModel($filtre->model);
         $items = $this->{$filtre->model}->{$filtre->function_find}();
+        $this->SeoFilter->setMainModel($this->getRequest()->getData('mainModel'));
         $this->SeoFilter->applyFilters($items);
         $url = $this->SeoFilter->getUrl($this->getRequest()->getParam('slug_seo_filter'), true);
 

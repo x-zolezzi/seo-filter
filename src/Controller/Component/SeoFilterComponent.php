@@ -26,6 +26,8 @@ class SeoFilterComponent extends Component
 
     private array $config = [];
 
+    private ?string $mainModel = null;
+
     public function __construct(ComponentRegistry $registry, array $config = [])
     {
         if(isset($config['paginate']))
@@ -50,6 +52,16 @@ class SeoFilterComponent extends Component
         $this->_setCriteres();
         $this->_setOrder();
         parent::initialize($config);
+    }
+
+    /**
+     * Permet de déterminer sur quel Modèle filtrer la requête finale
+     * @param string $model
+     * @return $this
+     */
+    public function setMainModel(string $model): self{
+        $this->mainModel = $model;
+        return $this;
     }
 
     private function _getStdCondition(
@@ -110,6 +122,41 @@ class SeoFilterComponent extends Component
         $conditions['OR'][] = [$critere->model . '.' . $critere->colonne => true];
     }
 
+    private function _getStdMatching(
+        &$matchings,
+        $filterValue,
+        $filterKey,
+        $critere
+    ): void{
+        $operateur = '';
+
+        if(is_array($filterValue)){ // Traitement tableau
+            $operateur = ' IN';
+            $filterValue = $filterValue;
+        }else{ // Traitement strings
+            if (preg_match('@([0-9]+):([0-9]+)@', $filterValue, $matches)) {
+                $operateur = ' >=';
+                $conditions[$critere->model . '.' . $critere->colonne . $operateur] = $matches[1];
+                $operateur = ' <=';
+                $filterValue = $matches[2];
+            } elseif (preg_match('@sup([0-9]+)@', $filterValue, $matches)) {
+                $operateur = ' >';
+                $filterValue = $matches[1];
+            } elseif (preg_match('@supeq([0-9]+)@', $filterValue, $matches)) {
+                $operateur = ' >=';
+                $filterValue = $matches[1];
+            } elseif (preg_match('@inf([0-9]+)@', $filterValue, $matches)) {
+                $operateur = ' <';
+                $filterValue = $matches[1];
+            } elseif (preg_match('@infeq([0-9]+)@', $filterValue, $matches)) {
+                $operateur = ' <=';
+                $filterValue = $matches[1];
+            }
+        }
+
+        $matchings[$critere->model][] = [$critere->model . '.' . $critere->colonne . $operateur => $filterValue];
+    }
+
     public function getConfig(?string $key = null, $default = null)
     {
         if($key){
@@ -151,6 +198,10 @@ class SeoFilterComponent extends Component
             }else{
                 $filterKey = $i;
                 $filterValue = $filter;
+            }
+
+            if(is_string($filterValue) && strpos($filterValue, ' ')){
+                $filterValue = explode(' ', $filterValue);
             }
 
             $critere = $this->getController()->SeofilterFiltersCriteres->find()
@@ -198,16 +249,25 @@ class SeoFilterComponent extends Component
     }
 
     public function applyMatching(){
+        $matchings = [];
         foreach ($this->criteres as $critere){
             if($critere->method !== 'MATCHING'){
                 continue;
             }
 
+            $filterValue = $this->criteresFilter[$critere->slug];
+            $filterKey = $critere->slug;
 
+            if($critere->critere_type === 'CHECKBOX'){
+                $this->_getStdMatching($matchings, $filterValue, $filterKey, $critere);
+            }
         }
+
+
+        return $matchings;
     }
 
-    public function getConditions($forceRedirect = true)
+    public function getConditions($forceRedirect = true, string $method = 'WHERE')
     {
         // TODO: mettre dans le app.php
         if ($forceRedirect) {
@@ -220,7 +280,7 @@ class SeoFilterComponent extends Component
             }
         }
 
-        return $this->applyConditions();
+        return $method === 'WHERE' ? $this->applyConditions() : $this->applyMatching();
     }
 
     public function getCriteresValues()
@@ -282,6 +342,10 @@ class SeoFilterComponent extends Component
                 'SeofilterFilters.slug' => $this->getController()->getRequest()->getParam('slug_seo_filter'),
                 'SeofilterFilters.is_active' => true
             ])->first();
+
+        // Permet d'exprimer sur quelle table il faut appliquer un distinct
+        $this->setMainModel($filtre->model);
+
         $this->getController()->set('seo_filter', $filtre);
 
         $values_for_seofilter_filters_criteres = [];
@@ -320,6 +384,10 @@ class SeoFilterComponent extends Component
 
         $str = '';
         foreach ($criteresPourUrl as $k => $critere){
+            if(is_string($critere) && strpos($critere, ' ') !== false){
+                $critere = explode(' ', $critere);
+            }
+
             if(is_array($critere)){
                 $criteresPourUrl[$k] = implode('+', $critere);
             }
@@ -379,10 +447,23 @@ class SeoFilterComponent extends Component
 
     public function applyFilters(Query &$query): Query{
 
-        $conditions = $this->getConditions(!$this->getController()->getRequest()->is('ajax'));
+        $forceRedirect = !$this->getController()->getRequest()->is('ajax');
+        $conditions = $this->getConditions($forceRedirect, 'WHERE');
         $query->andWhere($conditions);
+
+        $matchings = $this->getConditions($forceRedirect, 'MATCHING');
+        foreach ($matchings as $model => $conditions){
+            $query->matching($model, function (Query $q) use($conditions): Query{
+                return $q->where($conditions);
+            });
+        }
+
         if(!empty($this->order)){
             $query->order($this->order);
+        }
+
+        if($this->mainModel){
+            $query->distinct($this->mainModel . '.id');
         }
 
         return $query;
