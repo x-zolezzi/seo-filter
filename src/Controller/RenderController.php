@@ -41,12 +41,18 @@ class RenderController extends AppController
         $url = $this->SeoFilter->getUrl($this->getRequest()->getParam('slug_seo_filter'), true);
 
         $this->set('items', $items);
+        $this->set('seo_filter', $filtre);
 
         $html = $this->render('render')->getBody()->__toString();
 
+        $this->set('url', $this->SeoFilter->getCriteresPourUrl());
+        $this->viewBuilder()->disableAutoLayout();
+        $pagination = $this->render('/element/pagination')->getBody()->__toString();
+
         $data = [
             'url' => $url,
-            'html' => $html
+            'html' => $html,
+            'pagination' => $pagination
         ];
 
         if($this->SeoFilter->getConfig('countResults')){

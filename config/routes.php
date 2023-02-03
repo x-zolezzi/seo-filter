@@ -21,7 +21,7 @@ Router::scope('/', function (RouteBuilder $routes) {
         $routes->connect(
             '/' . $filtre->slug . '/{filtres}',
             ['controller' => $filtre->controller, 'action' => $filtre->action, 'slug_seo_filter' => $filtre->slug],
-            ['_name' => $filtre->slug, 'filtres' => '[_a-zA-Z0-9\s\/\+:-]+']
+            ['_name' => $filtre->slug, 'filtres' => '[a-zA-Z0-9\s\/\+-_\.:;]+']
         );
     }
     $routes->fallbacks(DashedRoute::class);

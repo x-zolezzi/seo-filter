@@ -4,6 +4,8 @@ namespace SeoFilter\Controller\Component;
 
 use Cake\Controller\Component;
 use Cake\Controller\ComponentRegistry;
+use Cake\Datasource\Exception\PageOutOfBoundsException;
+use Cake\Http\Exception\NotFoundException;
 use Cake\Http\Exception\RedirectException;
 use Cake\ORM\Locator\TableLocator;
 use Cake\ORM\Query;
@@ -12,6 +14,8 @@ use Cake\Routing\Router;
 class SeoFilterComponent extends Component
 {
 
+    protected $components = ['Paginator'];
+
     private array $paginate = [
         'enabled' => false,
         'items_per_page' => 0,
@@ -19,6 +23,7 @@ class SeoFilterComponent extends Component
 
     protected array $criteres = []; // QueryBuilder
     protected array $criteresFilter = []; //
+    protected ?int $page = null;
 
     protected array $order = []; // paramètres d'ordre de la requête
 
@@ -33,7 +38,8 @@ class SeoFilterComponent extends Component
         if(isset($config['paginate']))
             $this->paginate = [
                 'enabled' => $config['paginate']['enabled'],
-                'items_per_page' => $config['paginate']['items_per_page'] > 0 ? $config['paginate']['items_per_page'] : 1
+                'maxLimit' => $config['paginate']['maxLimit'] > 0 ? $config['paginate']['maxLimit'] : 1,
+                'limit' => $config['paginate']['limit'] > 0 ? $config['paginate']['limit'] : 1
             ];
 
         if(isset($config['countResults']))
@@ -51,6 +57,7 @@ class SeoFilterComponent extends Component
     {
         $this->_setCriteres();
         $this->_setOrder();
+        $this->_setPage();
         parent::initialize($config);
     }
 
@@ -182,7 +189,7 @@ class SeoFilterComponent extends Component
             $filters = explode('/', $filtresParam);
             if(empty($filtre_slug)) return [];
         }else{
-            $filters = $this->getController()->getRequest()->getData('seofilter_filters_criteres');
+            $filters = $this->getController()->getRequest()->getData('seofilter_filters_criteres') ?? [];
         }
 
         $this->getController()->loadModel('SeoFilter.SeofilterFiltersCriteres');
@@ -263,7 +270,6 @@ class SeoFilterComponent extends Component
             }
         }
 
-
         return $matchings;
     }
 
@@ -276,6 +282,7 @@ class SeoFilterComponent extends Component
             $validUrl = $this->getUrl($this->getController()->getRequest()->getParam('slug_seo_filter'));
             if ($validUrl != $url) {
                 // TODO: mettre nom route dans app.php
+                $this->getController()->log('Redirect: from ' . $url . ' to ' . $validUrl);
                 throw new RedirectException($validUrl, 301);
             }
         }
@@ -376,9 +383,7 @@ class SeoFilterComponent extends Component
         }
     }
 
-    public function getUrl($filtre_slug, $full_url = true)
-    {
-
+    public function getCriteresPourUrl(): string{
         ksort($this->criteresFilter);
         $criteresPourUrl = $this->criteresFilter;
 
@@ -395,12 +400,15 @@ class SeoFilterComponent extends Component
             $str .= $k . '-' . $criteresPourUrl[$k] . '/';
         }
 
+        return $str;
+    }
+
+    public function getUrl($filtre_slug, $full_url = true)
+    {
+        $queryParams = [];
+        $str = $this->getCriteresPourUrl();
         if ($full_url) {
-            $order = $this->order;
-            if (!empty($order)) {
-                $order = ['order' =>  key($order) . '-' . $order[key($order)]];
-            }
-            return Router::url(['_name' => $filtre_slug . (empty($str) ? '_empty' : ''), 'filtres' => $str, 'slug_seo_filter' => $filtre_slug, '?' => $order], true);
+            return Router::url(['_name' => $filtre_slug . (empty($str) ? '_empty' : ''), 'filtres' => $str, 'slug_seo_filter' => $filtre_slug, '?' => $this->getController()->getRequest()->getQuery()], true);
         } else {
             return '/' . $str;
         }
@@ -445,9 +453,20 @@ class SeoFilterComponent extends Component
         return $this;
     }
 
+    private function _setPage(): self{
+        if($this->config['paginate']['enabled']){
+            $this->Paginator->setConfig($this->paginate);
+            $this->page = $this->getController()->getRequest()->getData('page') ?? $this->getController()->getRequest()->getQuery('page') ?? 1;
+            $this->paginate['page'] = $this->page;
+        }
+
+        return $this;
+    }
+
     public function applyFilters(Query &$query): Query{
 
         $forceRedirect = !$this->getController()->getRequest()->is('ajax');
+
         $conditions = $this->getConditions($forceRedirect, 'WHERE');
         $query->andWhere($conditions);
 
@@ -458,8 +477,20 @@ class SeoFilterComponent extends Component
             });
         }
 
+
         if(!empty($this->order)){
             $query->order($this->order);
+        }
+
+        if($this->page){
+            try{
+                $this->Paginator->paginate($query, $this->paginate);
+            }catch (NotFoundException $exception){
+                $lastPage = $this->Paginator->getPagingParams()[$this->mainModel]['pageCount'];
+                $url = $this->getUrl($this->getController()->getRequest()->getParam('slug_seo_filter'));
+                $query = array_merge($this->getController()->getRequest()->getQuery(), ['page' => $lastPage]);
+                throw new RedirectException(Router::url(['url' => $url, '?' => $query]), 302);
+            }
         }
 
         if($this->mainModel){
