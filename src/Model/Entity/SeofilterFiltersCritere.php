@@ -14,6 +14,7 @@ use Cake\ORM\Entity;
  * @property string $slug
  * @property string $model
  * @property string $colonne
+ * @property string|null $association_model
  * @property string $method
  * @property string $critere_type
  * @property bool $ordre
@@ -41,6 +42,7 @@ class SeofilterFiltersCritere extends Entity
         'model' => true,
         'colonne' => true,
         'method' => true,
+        'association_model' => true,
         'colonne_label' => true,
         'function_find_values' => true,
         'element' => true,

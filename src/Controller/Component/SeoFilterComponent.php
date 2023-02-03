@@ -10,6 +10,7 @@ use Cake\Http\Exception\RedirectException;
 use Cake\ORM\Locator\TableLocator;
 use Cake\ORM\Query;
 use Cake\Routing\Router;
+use Cake\Utility\Inflector;
 
 class SeoFilterComponent extends Component
 {
@@ -164,6 +165,27 @@ class SeoFilterComponent extends Component
         $matchings[$critere->model][] = [$critere->model . '.' . $critere->colonne . $operateur => $filterValue];
     }
 
+    private function _getStdInnerJoinWiths(
+        &$joins,
+        $filterValue,
+        $filterKey,
+        $critere
+    ): void{
+        if(!is_array($filterValue)) {
+            $filterValue = [$filterValue];
+        }
+
+        foreach ($filterValue as $value){
+            $operateur = ' IN';
+            $query = (new TableLocator())->get($critere->association_model)->find()
+                ->select(Inflector::singularize(Inflector::underscore($this->mainModel)) . '_id')
+                ->where([
+                    $critere->association_model . '.' . Inflector::singularize(Inflector::underscore($critere->model)) . '_id' => $value
+                ]);
+            $joins[$critere->model][] = [$this->mainModel . '.' . $critere->colonne . $operateur => $query];
+        }
+    }
+
     public function getConfig(?string $key = null, $default = null)
     {
         if($key){
@@ -273,6 +295,25 @@ class SeoFilterComponent extends Component
         return $matchings;
     }
 
+    public function applyInnerJoins(): array{
+        $joins = [];
+        foreach ($this->criteres as $critere){
+            if($critere->method !== 'INNERJOINWITH'){
+                continue;
+            }
+
+            $filterValue = $this->criteresFilter[$critere->slug];
+            $filterKey = $critere->slug;
+
+            if($critere->critere_type === 'CHECKBOX'){
+                $this->_getStdInnerJoinWiths($joins, $filterValue, $filterKey, $critere);
+            }
+        }
+
+        // [this->mainModel.id in => foreach critere
+        return $joins;
+    }
+
     public function getConditions($forceRedirect = true, string $method = 'WHERE')
     {
         // TODO: mettre dans le app.php
@@ -287,7 +328,16 @@ class SeoFilterComponent extends Component
             }
         }
 
-        return $method === 'WHERE' ? $this->applyConditions() : $this->applyMatching();
+        switch ($method){
+            case  'WHERE':
+                return $this->applyConditions();
+
+            case 'MATCHING':
+                return $this->applyMatching();
+
+            case 'INNERJOINWITH':
+                return $this->applyInnerJoins();
+        }
     }
 
     public function getCriteresValues()
@@ -477,6 +527,10 @@ class SeoFilterComponent extends Component
             });
         }
 
+        $joins = $this->getConditions($forceRedirect, 'INNERJOINWITH');
+        foreach ($joins as $model => $conditions){
+            $query->where($conditions);
+        }
 
         if(!empty($this->order)){
             $query->order($this->order);
