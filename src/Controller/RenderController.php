@@ -47,13 +47,16 @@ class RenderController extends AppController
 
         $this->set('url', $this->SeoFilter->getCriteresPourUrl());
         $this->viewBuilder()->disableAutoLayout();
-        $pagination = $this->render('/element/pagination')->getBody()->__toString();
 
         $data = [
             'url' => $url,
             'html' => $html,
-            'pagination' => $pagination
         ];
+
+        //@todo: config
+        if($this->SeoFilter->isPaginationEnabled()){
+            $data['pagination'] = $this->render($this->SeoFilter->getPaginationTemplate())->getBody()->__toString();
+        }
 
         if($this->SeoFilter->getConfig('countResults')){
             $data['total_items'] = $items->count();

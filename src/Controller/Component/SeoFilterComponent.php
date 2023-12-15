@@ -38,6 +38,7 @@ class SeoFilterComponent extends Component
     {
         if(isset($config['paginate']))
             $this->paginate = [
+                'template' => $config['paginate']['template'] ?? '/element/pagination',
                 'enabled' => $config['paginate']['enabled'],
                 'maxLimit' => $config['paginate']['maxLimit'] > 0 ? $config['paginate']['maxLimit'] : 1,
                 'limit' => $config['paginate']['limit'] > 0 ? $config['paginate']['limit'] : 1
@@ -62,6 +63,14 @@ class SeoFilterComponent extends Component
         parent::initialize($config);
     }
 
+    public function isPaginationEnabled(): bool{
+        return $this->paginate['enabled'];
+    }
+    
+    public function getPaginationTemplate(): string{
+        return $this->paginate['template'];
+    }
+    
     /**
      * Permet de déterminer sur quel Modèle filtrer la requête finale
      * @param string $model
@@ -113,12 +122,16 @@ class SeoFilterComponent extends Component
         $filterKey,
         $critere
     ): void{
-        if(!is_array($filterValue)){
+
+        if(is_string($filterValue) && strpos($filterValue, ';') !== false){
+            $tmp = explode(';', $filterValue);
+            $filterValue = ['min' => $tmp[0], 'max' => $tmp[1]];
+        } else if(!is_array($filterValue)){
             $filterValue = ['min' => $filterValue, 'max' => $filterValue];
         }
 
         $conditions[$critere->model . '.' . $critere->colonne . ' <='] = $filterValue['max'];
-//        $conditions[$critere->model . '.' . $critere->colonne . ' >='] = $filterValue['min'];
+        $conditions[$critere->model . '.' . $critere->colonne . ' >='] = $filterValue['min'];
     }
 
     private function _getBooleanConditions(
