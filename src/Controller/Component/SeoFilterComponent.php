@@ -60,17 +60,18 @@ class SeoFilterComponent extends Component
         $this->_setCriteres();
         $this->_setOrder();
         $this->_setPage();
+        $this->_setLimit();
         parent::initialize($config);
     }
 
     public function isPaginationEnabled(): bool{
         return $this->paginate['enabled'];
     }
-    
+
     public function getPaginationTemplate(): string{
         return $this->paginate['template'];
     }
-    
+
     /**
      * Permet de déterminer sur quel Modèle filtrer la requête finale
      * @param string $model
@@ -512,6 +513,19 @@ class SeoFilterComponent extends Component
         }
 
         $this->order = $order;
+
+        return $this;
+    }
+
+    private function _setLimit(): self{
+        $limit = $this->getController()->getRequest()->getData('limit') ?? $this->getController()->getRequest()->getQuery('limit');
+        $this->paginate['limit'] = $limit;
+        $this->paginate['maxLimit'] = $limit;
+
+        if($limit === null || $limit == '-1'){
+            $this->paginate['limit'] = PHP_INT_MAX;
+            $this->paginate['maxLimit'] = PHP_INT_MAX;
+        }
 
         return $this;
     }
